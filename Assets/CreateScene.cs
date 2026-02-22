@@ -1,10 +1,11 @@
 using UnityEngine;
-
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 public class CreateScene : MonoBehaviour
 {
     public int SizeOfForest;
     public int NumberOfTrees;
-    
+
     [Range(3, 10)]
     public int PyramidLayers;
     
@@ -23,7 +24,10 @@ public class CreateScene : MonoBehaviour
 
     void Update()
     {
-        
+        // Find the celestial body in the scene
+        GameObject celestialBodyHolder = GameObject.Find("CelestialBody");
+        // Rotate the celestial body to simulate movement across the sky
+        celestialBodyHolder.transform.Rotate(new Vector3(1, 0, 0), 30 * Time.deltaTime); // Rotate around the x-axis to simulate movement 
     }
     
 
@@ -32,9 +36,12 @@ public class CreateScene : MonoBehaviour
     // This is the function that will create a Plane in the scene
     void CreateGround()
     {
-        GameObject plane = GameObject.CreatePrimitive(PrimitiveType.Plane);
-        plane.transform.position = new Vector3(0, 0, 0);
-        plane.transform.localScale = new Vector3(SizeOfPlane, 1, SizeOfPlane);
+        // Create an empty GameObject to hold the plane
+        GameObject ground = new GameObject("Ground");       // This creates an empty GameObject named "Ground" which will be used as a parent for the plane, helping to keep the hierarchy organized
+        GameObject plane = GameObject.CreatePrimitive(PrimitiveType.Plane);     // This creates a plane primitive which will serve as the ground in our scene
+        plane.transform.parent = ground.transform;      // This sets the parent of the plane to the ground GameObject, so it will be organized under the ground in the hierarchy
+        plane.transform.position = new Vector3(0, 0, 0);        // This sets the position of the plane to the origin (0, 0, 0) in the scene, so it will be centered at the world origin
+        plane.transform.localScale = new Vector3(SizeOfPlane, 1, SizeOfPlane);      // This scales the plane to make it larger, using the SizeOfPlane variable for the x and z scale, while keeping the y scale at 1 since we don't want to stretch it vertically
         // Set the material of the plane to a Sandy Beige color
         plane.GetComponent<Renderer>().material.color = new Color(0.8f, 0.7f, 0.5f);
     }
@@ -59,24 +66,48 @@ public class CreateScene : MonoBehaviour
     }
 
 
-    void CreatePyramid()
+     void CreatePyramid()
     {
+        
+        #region Colors 
+        Dictionary<int, Color> layerColors = new Dictionary<int, Color>()
+    {
+        { 0, Color.red },
+        { 1, Color.orange },
+        { 2, Color.yellow },
+        { 3, Color.limeGreen },
+        { 4, Color.green },
+        { 5, Color.cyan },
+        { 6, Color.blue },
+        { 7, Color.indigo },
+        { 8, Color.purple }, // Orange
+        { 9, Color.magenta } // Purple
+    };
+        #endregion
+
+        float spacing = 1.2f; //adds the gap
         int PyramidNumber = PyramidLayers;
         GameObject pyramid = new GameObject("Pyramid");
+        pyramid.transform.position = new Vector3(15, .8f, 0);
         for (int i = 0; i <= PyramidLayers; i++)//Height
         {
-                
-            for (int r = 0; r <= PyramidNumber; r++)//Length
-            {
-                GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                cube.transform.localPosition = new Vector3(0 + r, 1 + i, 0);
-                cube.transform.parent = pyramid.transform; 
+                float offset = i * 0.6f;
 
-                for (int j = 0; j <= PyramidNumber; j++)//Width
+            for (int r = 0; r < PyramidNumber; r++)//Rows
+            {
+                for (int j = 0; j < PyramidNumber; j++)//Columns
                     {
-                        cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                        cube.transform.localPosition = new Vector3(0, 1 + i, 0 + j);
-                        cube.transform.parent = pyramid.transform; 
+                        GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                        cube.transform.parent = pyramid.transform;
+
+                        // Combine j, i, and r into one position
+                        // We add 'offset' to X and Z so it stays centered
+                        float x = (j * spacing) + offset;
+                        float y = i * (spacing - 0.1f); // Set the y position based on the layer number
+                        float z = (r * spacing) + offset;
+
+                        cube.transform.localPosition = new Vector3(x, y, z);
+                        cube.GetComponent<Renderer>().material.color = layerColors[i]; // Set the material color based on the layer number
 
                     }
               
@@ -84,21 +115,27 @@ public class CreateScene : MonoBehaviour
             PyramidNumber--;
         }
 
- //I took the x and z positions of each cube in the layer and multiplied it by the layer number * 0.5
-//array to grab colors based on I?
+    
+
     }
-/*
- I did a variable with a range for the pyramid size 
- I used three nested for loops to build the pyramid it runs for each level of the pyramid, 
- offsetting its location each time and setting a random material color each time */
 
     void CreateCelestialBody()
     {
+        // Create an empty GameObject to hold the celestial body
+        GameObject celestialBodyHolder = new GameObject("CelestialBody");
+        celestialBodyHolder.transform.position = new Vector3(0, 0, 0);     // Position the holder at the origin so the celestial body will be positioned relative to it
         // This function will create a celestial body (like a sun or moon) in the sky
         GameObject celestialBody = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        celestialBody.transform.position = new Vector3(0, 20, 0); // Position it high in the sky
-        celestialBody.transform.localScale = new Vector3(5, 5, 5); // Make it larger than a normal sphere
+        celestialBody.transform.position = new Vector3(0, 50, 0);       // Position it high in the sky
+        celestialBody.transform.localScale = new Vector3(5, 5, 5);      // Make it larger than a normal sphere
         celestialBody.GetComponent<Renderer>().material.color = new Color(1f, 0.9f, 0.6f); // Set the material to a bright color (like the sun)
+        celestialBody.transform.parent = celestialBodyHolder.transform;         // Set the parent of the celestial body to the holder for better organization
+        // Add a Directional light to the celestial body to make it emit light
+        Light light = celestialBody.AddComponent<Light>();
+        light.type = LightType.Directional;       // Set the light type to directional, which
+        light.color = new Color(1f, 0.9f, 0.6f); // Set the light color to match the celestial body
+        light.intensity = 1.5f;      // Adjust the intensity of the light
+        light.transform.rotation = Quaternion.Euler(90, 0, 0); // Rotate the light to shine down on the scene at an angle
     }
 
 
